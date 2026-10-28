@@ -1,0 +1,661 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#10172c">
+  <title>Nova Desktop — Interactive Preview</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      font-family: Inter, "Segoe UI", system-ui, sans-serif;
+      color: #f7f8ff;
+      --glass: #141a29d9;
+      --glass-light: #ffffff12;
+      --border: #ffffff24;
+      --muted: #c0c6d6;
+      --accent: #c5b6ff;
+      --shadow: 0 24px 80px #080b16a3;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      min-width: 320px;
+      min-height: 100vh;
+      margin: 0;
+      overflow: hidden;
+      background: #11172a;
+    }
+
+    button, input { font: inherit; }
+    button { color: inherit; }
+    .desktop {
+      position: relative;
+      min-height: 100vh;
+      overflow: hidden;
+      isolation: isolate;
+      background:
+        radial-gradient(ellipse at 68% 32%, #d2a7ff88 0, transparent 22%),
+        radial-gradient(ellipse at 35% 64%, #409fce70 0, transparent 30%),
+        radial-gradient(ellipse at 75% 82%, #5552c888 0, transparent 25%),
+        linear-gradient(135deg, #162c50 0%, #27234f 45%, #171a38 100%);
+    }
+
+    .desktop::before, .desktop::after {
+      position: absolute;
+      z-index: -1;
+      width: min(58vw, 780px);
+      aspect-ratio: 1;
+      border: 1px solid #ffffff20;
+      border-radius: 50%;
+      content: "";
+      pointer-events: none;
+    }
+
+    .desktop::before {
+      top: 8%;
+      left: 36%;
+      box-shadow: 0 0 0 38px #ffffff08, 0 0 0 88px #ffffff06, 0 0 120px #b6a5ff25;
+      transform: rotate(-24deg) scaleX(.78);
+    }
+
+    .desktop::after {
+      right: -15%;
+      bottom: -48%;
+      width: min(65vw, 900px);
+      border-color: #b7caff1b;
+      box-shadow: 0 0 0 46px #ffffff06, 0 0 100px #3fa6d826;
+    }
+
+    .top-panel {
+      position: absolute;
+      z-index: 20;
+      inset: 12px 18px auto;
+      display: flex;
+      height: 46px;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 17px;
+      border: 1px solid var(--border);
+      border-radius: 15px;
+      background: #121827a8;
+      box-shadow: 0 8px 35px #0b102744;
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+    }
+
+    .panel-left, .panel-right { display: flex; align-items: center; gap: 15px; }
+    .nova-mark {
+      display: grid;
+      width: 26px;
+      height: 26px;
+      place-items: center;
+      border-radius: 9px;
+      background: linear-gradient(140deg, #e1ccff, #9989fa);
+      color: #262347;
+      font-size: 13px;
+      font-weight: 900;
+    }
+    .panel-label { font-size: 12px; font-weight: 650; letter-spacing: .03em; }
+    .workspace-name { color: #e6e9f4; font-size: 11px; }
+    .panel-button {
+      display: grid;
+      min-width: 29px;
+      height: 29px;
+      place-items: center;
+      padding: 0 7px;
+      border: 0;
+      border-radius: 9px;
+      background: transparent;
+      cursor: pointer;
+    }
+    .panel-button:hover, .panel-button[aria-expanded="true"] { background: #ffffff19; }
+    .clock { min-width: 55px; font-size: 11px; text-align: center; }
+    .status-dot { width: 7px; height: 7px; border-radius: 50%; background: #82e0b0; box-shadow: 0 0 10px #82e0b0; }
+
+    .desktop-shortcuts {
+      position: absolute;
+      top: 92px;
+      left: 28px;
+      display: grid;
+      gap: 14px;
+    }
+
+    .shortcut {
+      display: grid;
+      width: 76px;
+      justify-items: center;
+      gap: 7px;
+      padding: 8px 5px;
+      border: 1px solid transparent;
+      border-radius: 12px;
+      background: transparent;
+      cursor: pointer;
+      text-shadow: 0 2px 6px #0b0d1b;
+    }
+    .shortcut:hover { border-color: #ffffff28; background: #ffffff14; }
+    .shortcut-icon { font-size: 29px; filter: drop-shadow(0 5px 8px #11162c88); }
+    .shortcut-label { font-size: 10px; text-align: center; }
+
+    .welcome {
+      position: absolute;
+      top: 22%;
+      left: 50%;
+      width: min(480px, calc(100% - 40px));
+      text-align: center;
+      transform: translateX(-50%);
+      text-shadow: 0 2px 18px #13142b88;
+      transition: opacity .2s ease;
+    }
+    .welcome .overline { color: #e0d9ff; font-size: 10px; font-weight: 700; letter-spacing: .2em; text-transform: uppercase; }
+    .welcome h1 { margin: 11px 0 8px; font-size: clamp(29px, 5vw, 48px); font-weight: 570; letter-spacing: -.055em; }
+    .welcome p { margin: 0; color: #edf0ffcf; font-size: 13px; }
+    .welcome-note { display: inline-flex; gap: 7px; align-items: center; margin-top: 21px; padding: 9px 13px; border: 1px solid #ffffff30; border-radius: 99px; background: #12182a54; color: #f4e4b7; font-size: 10px; backdrop-filter: blur(12px); }
+
+    .dock {
+      position: absolute;
+      z-index: 20;
+      bottom: 20px;
+      left: 50%;
+      display: flex;
+      max-width: calc(100% - 24px);
+      align-items: end;
+      gap: 8px;
+      padding: 9px 12px 8px;
+      border: 1px solid #ffffff32;
+      border-radius: 20px;
+      background: #111726ba;
+      box-shadow: 0 12px 50px #090c19a8;
+      backdrop-filter: blur(27px);
+      -webkit-backdrop-filter: blur(27px);
+      transform: translateX(-50%);
+    }
+
+    .dock-button {
+      position: relative;
+      display: grid;
+      width: 47px;
+      height: 50px;
+      flex: 0 0 auto;
+      place-items: center;
+      border: 0;
+      border-radius: 14px;
+      background: transparent;
+      cursor: pointer;
+      transition: background .16s ease, transform .16s ease;
+    }
+    .dock-button:hover { background: #ffffff19; transform: translateY(-5px); }
+    .dock-button .icon { font-size: 25px; filter: drop-shadow(0 3px 4px #11172a); }
+    .dock-button .tooltip {
+      position: absolute;
+      bottom: 59px;
+      left: 50%;
+      padding: 6px 9px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: #161c2bf2;
+      font-size: 10px;
+      opacity: 0;
+      pointer-events: none;
+      transform: translate(-50%, 4px);
+      transition: .15s ease;
+      white-space: nowrap;
+    }
+    .dock-button:hover .tooltip { opacity: 1; transform: translate(-50%, 0); }
+    .dock-divider { width: 1px; height: 34px; align-self: center; margin: 0 3px; background: #ffffff31; }
+    .running-dot { position: absolute; bottom: 1px; left: 50%; width: 4px; height: 4px; border-radius: 50%; background: #ddd4ff; transform: translateX(-50%); }
+
+    .glass-card {
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      background: #151b2bd9;
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(28px);
+      -webkit-backdrop-filter: blur(28px);
+    }
+
+    .popup {
+      position: absolute;
+      z-index: 30;
+      top: 68px;
+      right: 22px;
+      width: min(310px, calc(100vw - 28px));
+      padding: 17px;
+      animation: reveal .16s ease-out;
+    }
+    .popup[hidden], .window[hidden], .launcher[hidden] { display: none; }
+    @keyframes reveal { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: translateY(0); } }
+    .popup-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 15px; }
+    .popup-head strong { font-size: 13px; }
+    .subtle { color: var(--muted); font-size: 10px; }
+    .quick-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+    .quick-toggle { display: flex; min-height: 48px; align-items: center; gap: 9px; padding: 9px; border: 1px solid #ffffff1b; border-radius: 11px; background: #ffffff0b; cursor: pointer; font-size: 11px; }
+    .quick-toggle[aria-pressed="true"] { border-color: #c3b4ff65; background: #9f8cff2c; }
+    .quick-toggle span:first-child { font-size: 16px; }
+    .slider-row { margin-top: 17px; }
+    .slider-label { display: flex; justify-content: space-between; margin-bottom: 8px; color: #e6e8f2; font-size: 10px; }
+    input[type="range"] { width: 100%; accent-color: #b8a9ff; }
+    .notice-item { padding: 12px; border: 1px solid #ffffff19; border-radius: 12px; background: #ffffff09; }
+    .notice-item strong { display: block; margin-bottom: 5px; font-size: 11px; }
+    .notice-item p { margin: 0; color: var(--muted); font-size: 10px; line-height: 1.5; }
+    .clear-button { width: 100%; margin-top: 10px; padding: 8px; border: 1px solid #ffffff20; border-radius: 9px; background: #ffffff0b; cursor: pointer; font-size: 10px; }
+
+    .launcher {
+      position: absolute;
+      z-index: 15;
+      inset: 0;
+      display: grid;
+      align-content: center;
+      justify-items: center;
+      padding: 70px 20px 96px;
+      background: #0c1125a3;
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+      animation: launcher-in .18s ease-out;
+    }
+    @keyframes launcher-in { from { opacity: 0; } to { opacity: 1; } }
+    .launcher-content { width: min(760px, 100%); }
+    .launcher-title { margin: 0 0 17px; font-size: 22px; font-weight: 550; text-align: center; }
+    .launcher-search { display: block; width: min(520px, 100%); height: 43px; margin: 0 auto 24px; padding: 0 15px; border: 1px solid #ffffff32; border-radius: 12px; outline: 0; background: #111728d9; color: white; text-align: center; }
+    .launcher-search:focus { border-color: #c3b4ff; }
+    .app-grid { display: grid; grid-template-columns: repeat(5, minmax(75px, 1fr)); gap: 13px; }
+    .launcher-app { display: grid; justify-items: center; gap: 8px; padding: 12px 6px; border: 1px solid transparent; border-radius: 13px; background: transparent; cursor: pointer; }
+    .launcher-app[hidden] { display: none; }
+    .launcher-app:hover { border-color: #ffffff2a; background: #ffffff13; }
+    .launcher-app .icon { display: grid; width: 48px; height: 48px; place-items: center; border-radius: 15px; background: linear-gradient(145deg, #e2d4ff, #9585ec); color: #282448; font-size: 23px; box-shadow: 0 8px 18px #11152855; }
+    .launcher-app:nth-child(3n + 2) .icon { background: linear-gradient(145deg, #d0f0ee, #62b7c9); }
+    .launcher-app:nth-child(3n) .icon { background: linear-gradient(145deg, #ffe5c4, #ec9c74); }
+    .launcher-app span:last-child { font-size: 10px; }
+
+    .window {
+      position: absolute;
+      z-index: 12;
+      top: 50%;
+      left: 50%;
+      width: min(720px, calc(100vw - 30px));
+      min-height: 390px;
+      overflow: hidden;
+      border: 1px solid #ffffff43;
+      border-radius: 18px;
+      background: #edf0f9f2;
+      color: #24283a;
+      box-shadow: 0 32px 100px #080b1b8c;
+      transform: translate(-50%, -50%);
+      animation: reveal .18s ease-out;
+    }
+    .window-bar { display: flex; height: 49px; align-items: center; justify-content: space-between; padding: 0 15px; border-bottom: 1px solid #10142a14; background: #e6e9f3; }
+    .window-title { display: flex; align-items: center; gap: 9px; font-size: 12px; font-weight: 700; }
+    .window-controls { display: flex; gap: 7px; }
+    .window-controls button { display: grid; width: 24px; height: 24px; place-items: center; border: 0; border-radius: 50%; background: #d3d8e6; color: #34384a; cursor: pointer; font-size: 11px; }
+    .window-controls .close { background: #f1848d; color: #4a1720; }
+    .window-content { min-height: 340px; padding: 25px; }
+    .window-content h2 { margin: 0 0 7px; font-size: 21px; letter-spacing: -.03em; }
+    .window-content > p { margin: 0 0 19px; color: #666d80; font-size: 11px; line-height: 1.6; }
+    .preview-banner { margin: 0 0 18px; padding: 11px 13px; border: 1px solid #e8c77d; border-radius: 10px; background: #fff3d3; color: #69501c; font-size: 10px; line-height: 1.5; }
+    .store-mini-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 11px; }
+    .store-mini-card { padding: 13px; border: 1px solid #dadee9; border-radius: 12px; background: white; }
+    .store-mini-card .mini-icon { font-size: 21px; }
+    .store-mini-card h3 { margin: 9px 0 4px; font-size: 11px; }
+    .store-mini-card p { margin: 0; color: #70778a; font-size: 9px; line-height: 1.4; }
+    .settings-list { display: grid; gap: 9px; }
+    .settings-row { display: flex; align-items: center; justify-content: space-between; padding: 13px; border: 1px solid #dce0ea; border-radius: 10px; background: white; font-size: 11px; }
+    .settings-row span:last-child { color: #7d8290; font-size: 10px; }
+    .file-placeholder { display: grid; min-height: 180px; place-items: center; border: 1px dashed #c3c9d7; border-radius: 13px; color: #757c8e; font-size: 11px; }
+    .window-note { margin-top: 13px !important; color: #8a6070 !important; font-size: 9px !important; }
+
+    .toast {
+      position: absolute;
+      z-index: 40;
+      right: 23px;
+      bottom: 94px;
+      max-width: min(320px, calc(100vw - 32px));
+      padding: 11px 14px;
+      border: 1px solid var(--border);
+      border-radius: 11px;
+      background: #161d2ceF;
+      box-shadow: var(--shadow);
+      font-size: 10px;
+      opacity: 0;
+      pointer-events: none;
+      transform: translateY(8px);
+      transition: .18s ease;
+    }
+    .toast.visible { opacity: 1; transform: translateY(0); }
+
+    @media (max-width: 650px) {
+      .top-panel { inset: 8px 8px auto; height: 42px; padding: 0 10px; }
+      .panel-left { gap: 8px; }
+      .workspace-name { display: none; }
+      .panel-right { gap: 5px; }
+      .desktop-shortcuts { top: 68px; left: 9px; gap: 5px; }
+      .shortcut { width: 62px; padding: 6px 3px; }
+      .shortcut-icon { font-size: 24px; }
+      .shortcut-label { font-size: 9px; }
+      .welcome { top: 23%; }
+      .dock { bottom: 10px; gap: 2px; padding: 6px 7px; border-radius: 16px; }
+      .dock-button { width: 39px; height: 43px; }
+      .dock-button .icon { font-size: 21px; }
+      .dock-divider { height: 27px; margin: 0 1px; }
+      .popup { top: 59px; right: 10px; }
+      .window { min-height: 0; max-height: calc(100vh - 100px); overflow: auto; }
+      .window-content { min-height: 0; padding: 17px; }
+      .store-mini-grid { grid-template-columns: repeat(2, 1fr); }
+      .app-grid { grid-template-columns: repeat(3, 1fr); gap: 4px; }
+      .launcher { padding: 60px 12px 80px; }
+    }
+
+    @media (max-width: 390px) {
+      .panel-label { font-size: 10px; }
+      .top-panel { inset-inline: 5px; }
+      .panel-right { gap: 1px; }
+      .dock-button { width: 35px; }
+      .dock-divider { margin-inline: 0; }
+      .app-grid { grid-template-columns: repeat(3, minmax(60px, 1fr)); }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
+    }
+  </style>
+</head>
+<body>
+  <main class="desktop" id="desktop" aria-label="Nova desktop preview">
+    <header class="top-panel">
+      <div class="panel-left">
+        <div class="nova-mark" aria-hidden="true">N</div>
+        <span class="panel-label">Nova</span>
+        <span class="workspace-name">Workspace 1</span>
+      </div>
+      <div class="panel-right">
+        <button class="panel-button" id="show-notifications" aria-label="Notifications" aria-expanded="false">◉</button>
+        <span class="status-dot" aria-label="Offline preview"></span>
+        <button class="panel-button" id="clock-button" aria-label="Current time"><span class="clock" id="clock"></span></button>
+        <button class="panel-button" id="show-control" aria-label="Quick settings" aria-expanded="false">☼</button>
+      </div>
+    </header>
+
+    <section class="desktop-shortcuts" aria-label="Desktop shortcuts">
+      <button class="shortcut" data-open="files"><span class="shortcut-icon" aria-hidden="true">📁</span><span class="shortcut-label">Files</span></button>
+      <button class="shortcut" data-open="store"><span class="shortcut-icon" aria-hidden="true">🛍️</span><span class="shortcut-label">Software Center</span></button>
+      <button class="shortcut" data-open="settings"><span class="shortcut-icon" aria-hidden="true">⚙️</span><span class="shortcut-label">Settings</span></button>
+    </section>
+
+    <section class="welcome" id="welcome">
+      <div class="overline">A new space to explore</div>
+      <h1>Welcome to Nova.</h1>
+      <p>A calm, modern desktop concept built around your workflow.</p>
+      <div class="welcome-note">✦ &nbsp;Interactive design preview · not a booted graphical OS</div>
+    </section>
+
+    <section class="launcher" id="launcher" hidden aria-label="Application launcher">
+      <div class="launcher-content">
+        <h2 class="launcher-title">All applications</h2>
+        <input class="launcher-search" id="launcher-search" type="search" placeholder="Search applications..." aria-label="Search applications">
+        <div class="app-grid" id="app-grid">
+          <button class="launcher-app" data-open="files"><span class="icon">📁</span><span>Files</span></button>
+          <button class="launcher-app" data-open="store"><span class="icon">🛍</span><span>Software Center</span></button>
+          <button class="launcher-app" data-open="settings"><span class="icon">⚙</span><span>Settings</span></button>
+          <button class="launcher-app" data-open="terminal"><span class="icon">⌘</span><span>Terminal</span></button>
+          <button class="launcher-app" data-open="notes"><span class="icon">▤</span><span>Notes</span></button>
+          <button class="launcher-app" data-open="photos"><span class="icon">✦</span><span>Photos</span></button>
+          <button class="launcher-app" data-open="calendar"><span class="icon">▦</span><span>Calendar</span></button>
+          <button class="launcher-app" data-open="music"><span class="icon">♫</span><span>Music</span></button>
+          <button class="launcher-app" data-open="help"><span class="icon">?</span><span>Help</span></button>
+          <button class="launcher-app" data-open="about"><span class="icon">N</span><span>About Nova</span></button>
+        </div>
+      </div>
+    </section>
+
+    <section class="popup glass-card" id="control-popup" hidden aria-label="Quick settings">
+      <div class="popup-head"><strong>Control Center</strong><span class="subtle">Preview device</span></div>
+      <div class="quick-grid">
+        <button class="quick-toggle" aria-pressed="false"><span>◉</span><span>Wi-Fi<br><small class="subtle">Unavailable</small></span></button>
+        <button class="quick-toggle" aria-pressed="false"><span>◌</span><span>Bluetooth<br><small class="subtle">Unavailable</small></span></button>
+        <button class="quick-toggle" aria-pressed="true"><span>☾</span><span>Night light<br><small class="subtle">Preview toggle</small></span></button>
+        <button class="quick-toggle" aria-pressed="false"><span>⌁</span><span>Do not disturb<br><small class="subtle">Preview toggle</small></span></button>
+      </div>
+      <div class="slider-row"><label class="slider-label" for="brightness"><span>☼ &nbsp;Brightness</span><span id="brightness-value">78%</span></label><input id="brightness" type="range" min="25" max="100" value="78"></div>
+      <div class="slider-row"><label class="slider-label" for="volume"><span>♫ &nbsp;Volume</span><span id="volume-value">42%</span></label><input id="volume" type="range" min="0" max="100" value="42"></div>
+      <p class="subtle">Hardware controls are visual only in this preview.</p>
+    </section>
+
+    <section class="popup glass-card" id="notification-popup" hidden aria-label="Notifications">
+      <div class="popup-head"><strong>Notifications</strong><span class="subtle">Today</span></div>
+      <div class="notice-item" id="sample-notice"><strong>Welcome to the Nova preview</strong><p>This desktop is a browser prototype. The current kernel still boots into a text console.</p></div>
+      <button class="clear-button" id="clear-notice">Clear notifications</button>
+    </section>
+
+    <section class="window" id="app-window" hidden aria-label="Application window">
+      <header class="window-bar">
+        <div class="window-title"><span id="window-icon">N</span><span id="window-title">Application</span></div>
+        <div class="window-controls">
+          <button id="minimize-window" aria-label="Minimize">—</button>
+          <button id="close-window" class="close" aria-label="Close">×</button>
+        </div>
+      </header>
+      <div class="window-content" id="window-content"></div>
+    </section>
+
+    <nav class="dock" aria-label="Application dock">
+      <button class="dock-button" id="launcher-button" aria-label="Open application launcher"><span class="icon">✿</span><span class="tooltip">Launcher</span></button>
+      <span class="dock-divider"></span>
+      <button class="dock-button" data-open="files" aria-label="Open Files"><span class="icon">📁</span><span class="tooltip">Files</span><i class="running-dot"></i></button>
+      <button class="dock-button" data-open="store" aria-label="Open Software Center"><span class="icon">🛍️</span><span class="tooltip">Software Center</span></button>
+      <button class="dock-button" data-open="settings" aria-label="Open Settings"><span class="icon">⚙️</span><span class="tooltip">Settings</span></button>
+      <button class="dock-button" data-open="terminal" aria-label="Open Terminal"><span class="icon">⌘</span><span class="tooltip">Terminal</span></button>
+      <button class="dock-button" data-open="notes" aria-label="Open Notes"><span class="icon">▤</span><span class="tooltip">Notes</span></button>
+      <span class="dock-divider"></span>
+      <button class="dock-button" id="dock-control" aria-label="Open Control Center"><span class="icon">☼</span><span class="tooltip">Control Center</span></button>
+    </nav>
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  </main>
+
+  <script>
+    const appData = {
+      files: { title: "Files", icon: "📁", heading: "Your files", body: "A file browser concept. Nova does not yet have a mounted filesystem or a graphical file manager." },
+      store: { title: "Software Center", icon: "🛍️", heading: "Discover applications", body: "A storefront concept with sample apps. Downloads, package verification, and installation are not available." },
+      settings: { title: "Settings", icon: "⚙️", heading: "Make Nova yours", body: "Preferences in this design preview do not change kernel or hardware settings." },
+      terminal: { title: "Terminal", icon: "⌘", heading: "Nova Terminal", body: "A terminal app concept. The kernel currently exposes only its boot-time diagnostic console." },
+      notes: { title: "Notes", icon: "▤", heading: "A place for your thoughts", body: "Notes are not saved. Persistent storage has not been implemented." },
+      photos: { title: "Photos", icon: "✦", heading: "Your memories", body: "Photo browsing is a visual placeholder; no image library is connected." },
+      calendar: { title: "Calendar", icon: "▦", heading: "Your calendar", body: "Calendar events and clock integration are not connected to system services." },
+      music: { title: "Music", icon: "♫", heading: "Listen in", body: "Audio playback is not supported by the current kernel." },
+      help: { title: "Help", icon: "?", heading: "Nova preview guide", body: "Use the dock to open apps, the flower to open the launcher, and the top-right controls for notification and quick-setting previews." },
+      about: { title: "About Nova", icon: "N", heading: "Nova is an experiment", body: "This browser mockup explores a desktop concept. Project Nova is currently an experimental x86_64 kernel and does not boot into this graphical interface." }
+    };
+
+    const launcher = document.querySelector("#launcher");
+    const launcherSearch = document.querySelector("#launcher-search");
+    const windowElement = document.querySelector("#app-window");
+    const content = document.querySelector("#window-content");
+    const popupControl = document.querySelector("#control-popup");
+    const popupNotifications = document.querySelector("#notification-popup");
+    let toastTimer;
+
+    function showToast(message) {
+      const toast = document.querySelector("#toast");
+      toast.textContent = message;
+      toast.classList.add("visible");
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => toast.classList.remove("visible"), 2200);
+    }
+
+    function hidePopups() {
+      popupControl.hidden = true;
+      popupNotifications.hidden = true;
+      document.querySelector("#show-control").setAttribute("aria-expanded", "false");
+      document.querySelector("#show-notifications").setAttribute("aria-expanded", "false");
+    }
+
+    function openApp(id) {
+      const app = appData[id];
+      if (!app) return;
+      launcher.hidden = true;
+      hidePopups();
+      document.querySelector("#window-title").textContent = app.title;
+      document.querySelector("#window-icon").textContent = app.icon;
+      content.replaceChildren();
+
+      const heading = document.createElement("h2");
+      heading.textContent = app.heading;
+      const description = document.createElement("p");
+      description.textContent = app.body;
+      content.append(heading, description);
+
+      if (id === "store") {
+        const banner = document.createElement("div");
+        banner.className = "preview-banner";
+        banner.textContent = "Preview only — all listings are sample content. Install actions are intentionally unavailable.";
+        const grid = document.createElement("div");
+        grid.className = "store-mini-grid";
+        for (const [icon, name, category] of [
+          ["✦", "Pixel Studio", "Graphics"],
+          ["◉", "Orbit Browser", "Utilities"],
+          ["⌘", "Nova Terminal", "Development"]
+        ]) {
+          const card = document.createElement("article");
+          card.className = "store-mini-card";
+          const symbol = document.createElement("span");
+          symbol.className = "mini-icon";
+          symbol.textContent = icon;
+          const title = document.createElement("h3");
+          title.textContent = name;
+          const subtitle = document.createElement("p");
+          subtitle.textContent = `${category} · Sample app`;
+          card.append(symbol, title, subtitle);
+          grid.append(card);
+        }
+        content.append(banner, grid);
+      } else if (id === "settings") {
+        const rows = document.createElement("div");
+        rows.className = "settings-list";
+        for (const [label, value] of [
+          ["Appearance", "Night · Preview"],
+          ["Display", "Framebuffer unavailable"],
+          ["Network", "No network driver"],
+          ["Accounts", "Authentication unavailable"]
+        ]) {
+          const row = document.createElement("div");
+          row.className = "settings-row";
+          const left = document.createElement("span");
+          left.textContent = label;
+          const right = document.createElement("span");
+          right.textContent = value;
+          row.append(left, right);
+          rows.append(row);
+        }
+        content.append(rows);
+      } else if (id === "files") {
+        const placeholder = document.createElement("div");
+        placeholder.className = "file-placeholder";
+        placeholder.textContent = "No filesystem mounted";
+        content.append(placeholder);
+      }
+
+      const note = document.createElement("p");
+      note.className = "window-note";
+      note.textContent = "Browser preview only · this is not a running Nova OS application.";
+      content.append(note);
+      windowElement.hidden = false;
+      document.querySelectorAll(".dock-button").forEach(button => {
+        button.querySelector(".running-dot")?.remove();
+      });
+      document.querySelector(`[data-open="${id}"]`)?.classList.add("is-open");
+    }
+
+    document.querySelector("#launcher-button").addEventListener("click", () => {
+      hidePopups();
+      launcher.hidden = !launcher.hidden;
+      if (!launcher.hidden) {
+        launcherSearch.value = "";
+        filterApps();
+        launcherSearch.focus();
+      }
+    });
+
+    document.querySelectorAll("[data-open]").forEach(button => {
+      button.addEventListener("click", () => openApp(button.dataset.open));
+    });
+
+    launcherSearch.addEventListener("input", filterApps);
+    function filterApps() {
+      const query = launcherSearch.value.trim().toLowerCase();
+      document.querySelectorAll(".launcher-app").forEach(button => {
+        button.hidden = !button.textContent.toLowerCase().includes(query);
+      });
+    }
+
+    document.querySelector("#show-control").addEventListener("click", event => {
+      const opening = popupControl.hidden;
+      hidePopups();
+      popupControl.hidden = !opening;
+      event.currentTarget.setAttribute("aria-expanded", String(opening));
+    });
+
+    document.querySelector("#dock-control").addEventListener("click", () => {
+      const button = document.querySelector("#show-control");
+      button.click();
+    });
+
+    document.querySelector("#show-notifications").addEventListener("click", event => {
+      const opening = popupNotifications.hidden;
+      hidePopups();
+      popupNotifications.hidden = !opening;
+      event.currentTarget.setAttribute("aria-expanded", String(opening));
+    });
+
+    document.querySelector("#clear-notice").addEventListener("click", () => {
+      document.querySelector("#sample-notice").hidden = true;
+      showToast("Notifications cleared in this preview.");
+    });
+
+    document.querySelectorAll(".quick-toggle").forEach(button => {
+      button.addEventListener("click", () => {
+        const pressed = button.getAttribute("aria-pressed") === "true";
+        button.setAttribute("aria-pressed", String(!pressed));
+        showToast("Preview control changed. Hardware state is not affected.");
+      });
+    });
+
+    for (const [id, outputId] of [["brightness", "brightness-value"], ["volume", "volume-value"]]) {
+      document.querySelector(`#${id}`).addEventListener("input", event => {
+        document.querySelector(`#${outputId}`).textContent = `${event.target.value}%`;
+      });
+    }
+
+    document.querySelector("#close-window").addEventListener("click", () => {
+      windowElement.hidden = true;
+      document.querySelectorAll(".dock-button.is-open").forEach(button => button.classList.remove("is-open"));
+    });
+    document.querySelector("#minimize-window").addEventListener("click", () => {
+      windowElement.hidden = true;
+      showToast("Window minimized in this preview.");
+    });
+
+    document.querySelector("#desktop").addEventListener("click", event => {
+      if (event.target === event.currentTarget) {
+        launcher.hidden = true;
+        hidePopups();
+      }
+    });
+
+    function updateClock() {
+      const now = new Date();
+      document.querySelector("#clock").textContent = new Intl.DateTimeFormat(undefined, {
+        hour: "2-digit",
+        minute: "2-digit"
+      }).format(now);
+    }
+    updateClock();
+    setInterval(updateClock, 30_000);
+
+    document.addEventListener("keydown", event => {
+      if (event.key === "Escape") {
+        launcher.hidden = true;
+        windowElement.hidden = true;
+        hidePopups();
+      }
+    });
+  </script>
+</body>
+</html>

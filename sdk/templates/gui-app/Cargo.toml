@@ -1,0 +1,8 @@
+[package]
+name = "nova-gui-app"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+nova-std = { path = "../../libraries/nova-std" }
+nova-ui = { path = "../../libraries/nova-ui" }

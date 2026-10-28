@@ -154,6 +154,21 @@ pub fn write_fmt(args: fmt::Arguments<'_>) -> fmt::Result {
     CONSOLE.lock().write_fmt(args)
 }
 
+pub fn show_software_center() {
+    let mut console = CONSOLE.lock();
+    console.clear();
+    for (index, line) in nova_kernel::software_center::text_screen()
+        .iter()
+        .enumerate()
+    {
+        if index + 1 == nova_kernel::software_center::text_screen().len() {
+            let _ = console.write_str(line);
+        } else {
+            let _ = writeln!(console, "{line}");
+        }
+    }
+}
+
 pub fn write_panic(info: &core::panic::PanicInfo<'_>) {
     if let Some(mut console) = CONSOLE.try_lock() {
         let _ = writeln!(console, "\nKERNEL PANIC: {info}");

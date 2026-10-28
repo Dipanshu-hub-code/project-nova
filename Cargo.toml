@@ -1,5 +1,12 @@
 [workspace]
-members = ["kernel"]
+members = [
+    "kernel",
+    "sdk/libraries/nova-std",
+    "sdk/libraries/nova-ui",
+    "tools/nova-dev",
+    "sdk/templates/cli-app",
+    "sdk/templates/gui-app",
+]
 resolver = "2"
 
 [profile.dev]

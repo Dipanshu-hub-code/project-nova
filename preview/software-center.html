@@ -1,0 +1,357 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#10131d">
+  <title>Nova Software Center — Preview</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      font-family: Inter, "Segoe UI", system-ui, sans-serif;
+      background: #10131d;
+      color: #f3f5fb;
+      font-synthesis: none;
+      text-rendering: optimizeLegibility;
+      --muted: #9aa3b8;
+      --panel: #191e2b;
+      --line: #2b3244;
+      --accent: #9a8cff;
+    }
+
+    * { box-sizing: border-box; }
+
+    body { margin: 0; min-height: 100vh; }
+
+    button, input { font: inherit; }
+
+    .app-shell { min-height: 100vh; }
+
+    .topbar {
+      height: 74px;
+      display: flex;
+      align-items: center;
+      gap: 30px;
+      padding: 0 42px;
+      border-bottom: 1px solid var(--line);
+      background: #131722;
+    }
+
+    .brand { display: flex; align-items: center; gap: 12px; min-width: 220px; }
+
+    .brand-mark {
+      display: grid;
+      width: 38px;
+      height: 38px;
+      place-items: center;
+      border-radius: 12px;
+      background: linear-gradient(140deg, #a597ff, #6c64e8);
+      color: #111321;
+      font-size: 19px;
+      font-weight: 900;
+    }
+
+    .brand-name { font-size: 15px; font-weight: 750; letter-spacing: .02em; }
+    .brand-subtitle { margin-top: 2px; color: var(--muted); font-size: 11px; }
+
+    .search-wrap { position: relative; flex: 1; max-width: 570px; }
+
+    .search-wrap span {
+      position: absolute;
+      top: 50%;
+      left: 15px;
+      color: var(--muted);
+      transform: translateY(-50%);
+    }
+
+    .search {
+      width: 100%;
+      height: 42px;
+      padding: 0 16px 0 42px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      outline: none;
+      background: #1b2030;
+      color: #f3f5fb;
+    }
+
+    .search:focus { border-color: #8178f5; box-shadow: 0 0 0 3px #8178f526; }
+    .top-status { margin-left: auto; color: #c6c8d7; font-size: 12px; white-space: nowrap; }
+    .top-status b { color: #ffc96a; font-weight: 650; }
+
+    .layout {
+      display: grid;
+      width: min(1440px, 100%);
+      grid-template-columns: 220px minmax(0, 1fr);
+      gap: 34px;
+      margin: 0 auto;
+      padding: 35px 42px 60px;
+    }
+
+    aside { padding-top: 8px; }
+    .nav-label { margin: 0 0 12px 12px; color: #737e96; font-size: 10px; font-weight: 750; letter-spacing: .13em; }
+
+    .nav-list { display: grid; gap: 5px; }
+
+    .nav-button {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      width: 100%;
+      padding: 11px 12px;
+      border: 0;
+      border-radius: 10px;
+      background: transparent;
+      color: #bac1d1;
+      cursor: pointer;
+      text-align: left;
+    }
+
+    .nav-button:hover, .nav-button.active { background: #24283a; color: white; }
+    .nav-button.active { box-shadow: inset 2px 0 #9a8cff; }
+    .nav-icon { width: 18px; color: #9a8cff; text-align: center; }
+    .installed-card { margin-top: 35px; padding: 15px; border: 1px solid var(--line); border-radius: 13px; background: #171b27; }
+    .installed-card strong { display: block; font-size: 12px; }
+    .installed-card p { margin: 8px 0 0; color: var(--muted); font-size: 11px; line-height: 1.5; }
+
+    main { min-width: 0; }
+
+    .eyebrow { color: #aaa1ff; font-size: 11px; font-weight: 750; letter-spacing: .15em; text-transform: uppercase; }
+    h1 { margin: 8px 0 7px; font-size: clamp(29px, 4vw, 42px); letter-spacing: -.045em; }
+    .intro { margin: 0; color: var(--muted); font-size: 14px; }
+
+    .notice {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      margin: 24px 0 25px;
+      padding: 14px 16px;
+      border: 1px solid #6c5431;
+      border-radius: 12px;
+      background: #352b1e;
+      color: #f4d7a3;
+      font-size: 12px;
+      line-height: 1.5;
+    }
+
+    .notice strong { color: #ffe4ae; }
+    .section-heading { display: flex; align-items: end; justify-content: space-between; margin: 27px 0 14px; }
+    .section-heading h2 { margin: 0; font-size: 18px; letter-spacing: -.02em; }
+    .section-heading span { color: var(--muted); font-size: 11px; }
+
+    .featured {
+      position: relative;
+      overflow: hidden;
+      min-height: 205px;
+      padding: 27px 30px;
+      border: 1px solid #48416f;
+      border-radius: 18px;
+      background:
+        radial-gradient(ellipse at 87% 45%, #9a8cff55 0, transparent 34%),
+        linear-gradient(112deg, #292744, #20233a 60%, #292340);
+    }
+
+    .featured::after {
+      position: absolute;
+      top: -63px;
+      right: 12%;
+      width: 250px;
+      height: 250px;
+      border: 1px solid #c5bfff36;
+      border-radius: 50%;
+      box-shadow: 0 0 0 25px #c5bfff0a, 0 0 0 52px #c5bfff08;
+      content: "";
+    }
+
+    .featured-content { position: relative; z-index: 1; max-width: 510px; }
+    .featured-tag { color: #c7c0ff; font-size: 10px; font-weight: 750; letter-spacing: .14em; }
+    .featured h3 { margin: 12px 0 8px; font-size: 23px; }
+    .featured p { max-width: 440px; margin: 0; color: #c2c2d5; font-size: 12px; line-height: 1.6; }
+    .featured-meta { display: flex; align-items: center; gap: 15px; margin-top: 18px; color: #d7d4ee; font-size: 11px; }
+    .featured-meta button { padding: 8px 13px; border: 0; border-radius: 8px; background: #b7adff; color: #17152b; font-size: 11px; font-weight: 750; }
+
+    .app-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 13px; }
+
+    .app-card {
+      min-width: 0;
+      padding: 16px;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: var(--panel);
+      transition: border-color .16s ease, transform .16s ease;
+    }
+
+    .app-card:hover { transform: translateY(-2px); border-color: #555071; }
+    .app-top { display: flex; align-items: center; justify-content: space-between; }
+    .app-icon { display: grid; width: 43px; height: 43px; place-items: center; border-radius: 13px; font-size: 21px; }
+    .icon-purple { background: #36304e; }
+    .icon-blue { background: #253b50; }
+    .icon-green { background: #263f39; }
+    .icon-orange { background: #4a352c; }
+    .icon-pink { background: #493045; }
+    .icon-yellow { background: #48412b; }
+    .rating { color: #f4c66b; font-size: 11px; }
+    .app-card h3 { overflow: hidden; margin: 14px 0 4px; font-size: 14px; text-overflow: ellipsis; white-space: nowrap; }
+    .category { color: #a69cff; font-size: 10px; }
+    .app-card p { min-height: 34px; margin: 10px 0 13px; color: var(--muted); font-size: 11px; line-height: 1.5; }
+    .card-footer { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+    .size { color: #8690a6; font-size: 10px; }
+    .card-footer button { padding: 6px 9px; border: 1px solid #47425f; border-radius: 7px; background: #29263d; color: #d8d2ff; font-size: 10px; font-weight: 700; }
+    button:disabled { cursor: not-allowed; opacity: .8; }
+    .empty { grid-column: 1 / -1; padding: 32px; border: 1px dashed #3b4254; border-radius: 12px; color: var(--muted); text-align: center; }
+    .footer-note { margin-top: 24px; color: #778198; font-size: 10px; line-height: 1.6; }
+
+    @media (max-width: 850px) {
+      .topbar { gap: 15px; padding: 0 20px; }
+      .brand { min-width: auto; }
+      .brand-subtitle, .top-status { display: none; }
+      .layout { grid-template-columns: minmax(0, 1fr); gap: 24px; padding: 27px 20px 45px; }
+      aside { padding: 0; }
+      .nav-label, .installed-card { display: none; }
+      .nav-list { display: flex; min-width: 0; max-width: 100%; overflow-x: auto; }
+      .nav-button { width: auto; flex: 0 0 auto; padding: 9px 11px; font-size: 12px; }
+      .nav-icon { display: none; }
+    }
+
+    @media (max-width: 600px) {
+      .topbar { height: auto; flex-wrap: wrap; padding: 14px 16px; }
+      .brand { flex: 1; }
+      .search-wrap { order: 2; flex-basis: 100%; max-width: none; }
+      .layout { padding: 22px 16px 35px; }
+      .app-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px; }
+      .app-card { padding: 12px; }
+      .featured { min-height: 220px; padding: 22px; }
+      .featured::after { right: -25%; }
+    }
+
+    @media (max-width: 390px) {
+      .app-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <div class="brand" aria-label="Nova Software Center">
+        <div class="brand-mark" aria-hidden="true">N</div>
+        <div><div class="brand-name">Nova Software</div><div class="brand-subtitle">A place for your next idea</div></div>
+      </div>
+      <label class="search-wrap">
+        <span aria-hidden="true">⌕</span>
+        <input class="search" id="search" type="search" placeholder="Search apps, categories..." autocomplete="off">
+      </label>
+      <div class="top-status"><b>Preview mode</b> · installation is offline</div>
+    </header>
+
+    <div class="layout">
+      <aside>
+        <p class="nav-label">EXPLORE</p>
+        <nav class="nav-list" aria-label="App categories">
+          <button class="nav-button active" data-category="All"><span class="nav-icon">◈</span>Discover</button>
+          <button class="nav-button" data-category="Graphics"><span class="nav-icon">◇</span>Graphics</button>
+          <button class="nav-button" data-category="Utilities"><span class="nav-icon">▦</span>Utilities</button>
+          <button class="nav-button" data-category="Development"><span class="nav-icon">⌘</span>Development</button>
+          <button class="nav-button" data-category="Productivity"><span class="nav-icon">▤</span>Productivity</button>
+          <button class="nav-button" data-category="Education"><span class="nav-icon">⌂</span>Education</button>
+        </nav>
+        <section class="installed-card">
+          <strong>Your library</strong>
+          <p>Installed apps will appear here when Nova has a package installer.</p>
+        </section>
+      </aside>
+
+      <main>
+        <div class="eyebrow">The Nova collection</div>
+        <h1>Find your next favorite.</h1>
+        <p class="intro">A thoughtfully curated starting point for the Nova desktop.</p>
+
+        <div class="notice" role="note">
+          <span aria-hidden="true">!</span>
+          <div><strong>UI preview only.</strong> The app catalog below uses sample content. Nova does not yet have a graphical framebuffer driver, package downloads, signature verification, or an installer. Install buttons are disabled.</div>
+        </div>
+
+        <section class="featured" aria-label="Featured app preview">
+          <div class="featured-content">
+            <div class="featured-tag">EDITOR'S PICK · SAMPLE LISTING</div>
+            <h3>Make space for your ideas.</h3>
+            <p>Pixel Studio is a concept listing for a creative workspace. This preview demonstrates the future software-center layout, not a downloadable application.</p>
+            <div class="featured-meta"><button type="button" disabled title="Package installation is not available">Preview only</button><span>Graphics · Sample listing</span></div>
+          </div>
+        </section>
+
+        <div class="section-heading">
+          <h2 id="listing-title">Popular apps</h2>
+          <span id="result-count"></span>
+        </div>
+        <section class="app-grid" id="apps" aria-live="polite"></section>
+        <p class="footer-note">Nova Software Center is a design preview. No apps, packages, repository metadata, ratings, or download sizes shown here represent verified live data.</p>
+      </main>
+    </div>
+  </div>
+
+  <script>
+    const apps = [
+      { name: "Pixel Studio", category: "Graphics", icon: "✦", tone: "purple", rating: "4.9", detail: "A sample illustration and image workspace.", size: "Sample" },
+      { name: "Orbit Browser", category: "Utilities", icon: "◉", tone: "blue", rating: "4.8", detail: "A concept for a clean, focused web browser.", size: "Sample" },
+      { name: "Nova Terminal", category: "Development", icon: "⌘", tone: "green", rating: "4.9", detail: "A sample command-line workspace listing.", size: "Sample" },
+      { name: "Notebook", category: "Productivity", icon: "▤", tone: "orange", rating: "4.7", detail: "A concept space for notes and snippets.", size: "Sample" },
+      { name: "Color Theory", category: "Education", icon: "◒", tone: "pink", rating: "4.8", detail: "A sample interactive learning application.", size: "Sample" },
+      { name: "Tiny Tasks", category: "Productivity", icon: "✓", tone: "yellow", rating: "4.6", detail: "A concept for a simple daily task list.", size: "Sample" }
+    ];
+
+    const list = document.querySelector("#apps");
+    const search = document.querySelector("#search");
+    const count = document.querySelector("#result-count");
+    const title = document.querySelector("#listing-title");
+    let activeCategory = "All";
+
+    function render() {
+      const query = search.value.trim().toLowerCase();
+      const visible = apps.filter(app =>
+        (activeCategory === "All" || app.category === activeCategory) &&
+        `${app.name} ${app.category} ${app.detail}`.toLowerCase().includes(query)
+      );
+      count.textContent = `${visible.length} sample listings`;
+      list.replaceChildren();
+
+      if (visible.length === 0) {
+        const empty = document.createElement("div");
+        empty.className = "empty";
+        empty.textContent = "No sample listings match this search.";
+        list.append(empty);
+        return;
+      }
+
+      for (const app of visible) {
+        const card = document.createElement("article");
+        card.className = "app-card";
+        card.innerHTML = `
+          <div class="app-top">
+            <div class="app-icon icon-${app.tone}" aria-hidden="true">${app.icon}</div>
+            <span class="rating" aria-label="Sample rating ${app.rating}">★ ${app.rating}</span>
+          </div>
+          <h3></h3>
+          <div class="category"></div>
+          <p></p>
+          <div class="card-footer"><span class="size">Sample data</span><button type="button" disabled title="Package installation is not available">Preview</button></div>`;
+        card.querySelector("h3").textContent = app.name;
+        card.querySelector(".category").textContent = app.category;
+        card.querySelector("p").textContent = app.detail;
+        list.append(card);
+      }
+    }
+
+    search.addEventListener("input", render);
+    document.querySelectorAll(".nav-button").forEach(button => {
+      button.addEventListener("click", () => {
+        activeCategory = button.dataset.category;
+        title.textContent = activeCategory === "All" ? "Popular apps" : `${activeCategory} apps`;
+        document.querySelectorAll(".nav-button").forEach(item => item.classList.toggle("active", item === button));
+        render();
+      });
+    });
+
+    render();
+  </script>
+</body>
+</html>

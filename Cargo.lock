@@ -36,12 +36,42 @@ dependencies = [
 ]
 
 [[package]]
+name = "nova-cli-app"
+version = "0.1.0"
+dependencies = [
+ "nova-std",
+]
+
+[[package]]
+name = "nova-dev"
+version = "0.1.0"
+
+[[package]]
+name = "nova-gui-app"
+version = "0.1.0"
+dependencies = [
+ "nova-std",
+ "nova-ui",
+]
+
+[[package]]
 name = "nova-kernel"
 version = "0.1.0"
 dependencies = [
  "bootloader",
  "spin",
  "x86_64",
+]
+
+[[package]]
+name = "nova-std"
+version = "0.1.0"
+
+[[package]]
+name = "nova-ui"
+version = "0.1.0"
+dependencies = [
+ "nova-std",
 ]
 
 [[package]]
